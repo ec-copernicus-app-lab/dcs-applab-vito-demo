@@ -5,15 +5,15 @@ import os
 import atexit
 import datetime
 
-sys.path.append(os.environ['_CIOP_APPLICATION_PATH'] + '/util')
+# indicates whetehr docker container should be used 
+RUN_DOCKER_CONTAINER = True
 
 # import the ciop functions (e.g. copy, log)
 
+sys.path.append(os.environ['_CIOP_APPLICATION_PATH'] + '/util')
+
 import cioppy
 ciop = cioppy.Cioppy()
-
-# import catalog client
-from catalogclient import catalog
 
 # define the exit codes
 SUCCESS = 0
@@ -27,9 +27,10 @@ def clean_exit(exit_code):
     if exit_code != SUCCESS:
         log_level = 'ERROR'
 
-    msg = { SUCCESS         : 'Querying VITO product catalogue successfully concluded',
-            ERR_NOINPUTS    : 'No products found matching the given query fields',
-            ERR_INVALIDTYPE : 'Invalid product type specified (expected: BA, LAI or NDVI)'}
+    msg = { SUCCESS          : 'Querying VITO product catalogue successfully concluded',
+            ERR_CATALOGQUERY : 'Querying VITO product catalogue failed',
+            ERR_NOINPUTS     : 'No products found matching the given query fields',
+            ERR_INVALIDTYPE  : 'Invalid product type specified (expected: BA, LAI or NDVI)'}
 
     ciop.log(log_level, msg[exit_code])
 
@@ -46,39 +47,71 @@ def main():
     elif producttype == "NDVI": type = "BioPar_NDVI_V2_Global"
     elif producttype == "LAI":  type = "BioPar_LAI_V2_Global"
     else:
-        sys.exit(ERR_INVALIDTYPE);
-
-    dt1 = datetime.strptime(startDate, "%Y%m%d");
-    dt2 = datetime.strptime(endDate, "%Y%m%d");
-
-    # query catalog matching the given fields
-    catalog=catalog.Catalog()
-
-    products = catalog.get_products(type, startdate=dt1.date(), enddate=dt2.date());
-
-    # check whether any matches have been found
-    if len(products) == 0:
-        sys.exit(ERR_NOINPUTS);
+        sys.exit(ERR_INVALIDTYPE);    
 
     results = []
 
-    # retrieve the local filenames
-    for product in products:
+    if RUN_DOCKER_CONTAINER:
 
-        inputfile = product.files[0].filename
+        import commands
+        import tempfile
 
-        if inputfile.startswith("file:"):
-            inputfile = 'file://' + inputfile[5:]
+        # execute docker container
+        (tmpFd, tmpFn) = tempfile.mkstemp(suffix='.tmp', prefix='applab');
 
-        # retrieve the file to the local temporary folder TMPDIR provided by the framework (this folder is only used by this process).
-        retrieved = ciop.copy(inputfile, ciop.tmp_dir)
-        ciop.log('INFO', 'Retrieved ' + os.path.basename(retrieved))
+        cmd = "docker run -v /tmp:/tmp " \
+              "vito-docker-private.artifactory.vgt.vito.be/applab-data-customization:latest " \
+              "/home/worker/applab/query.py -startdate %s -enddate %s -type %s -out %s" % (startDate, endDate, type, tmpFn) 
 
-        assert(retrieved)
+        stat, out = commands.getstatusoutput(cmd);
 
-        results.append(inputfile);
+        if stat != 0:
+            ciop.log('ERROR', 'Querying VITO product catalogue failed: %s' % out);
+            sys.exit(ERR_CATALOGQUERY)
 
-    ciop.log('INFO', 'Found ' + len(results) + ' products matching the given query fields')
+        # retrieve list of results
+        results = tmpFd.readlines();
+        results = [x.strip() for x in content]
+
+        tmpFd.close();
+
+        if len(results) == 0:
+            sys.exit(ERR_NOINPUTS);
+
+    else:
+
+        # import catalog client
+        from catalogclient import catalog
+
+        dt1 = datetime.strptime(startDate, "%Y%m%d");
+        dt2 = datetime.strptime(endDate, "%Y%m%d");
+
+        # query catalog matching the given fields
+        catalog=catalog.Catalog()
+
+        products = catalog.get_products(type, startdate=dt1.date(), enddate=dt2.date());
+
+        # check whether any matches have been found
+        if len(products) == 0:
+            sys.exit(ERR_NOINPUTS);
+
+        # retrieve the local filenames
+        for product in products:
+
+            inputfile = product.files[0].filename
+
+            if inputfile.startswith("file:"):
+                inputfile = 'file://' + inputfile[5:]
+
+            # retrieve the file to the local temporary folder TMPDIR provided by the framework (this folder is only used by this process).
+            retrieved = ciop.copy(inputfile, ciop.tmp_dir)
+            ciop.log('INFO', 'Retrieved ' + os.path.basename(retrieved))
+
+            assert(retrieved)
+
+            results.append(inputfile);
+
+    ciop.log('INFO', 'Found ' + len(results) + ' products from VITO product catalog matching the given query fields')
 
     # publish the results that have been found
     published = ciop.publish(results)
