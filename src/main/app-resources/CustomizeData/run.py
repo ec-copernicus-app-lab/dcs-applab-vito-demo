@@ -71,7 +71,9 @@ def main():
         outputPath       = os.path.join(outputDir, outputBasename);
         outputPathDocker = os.path.join("/home/worker/workDir/outDir", outputBasename);
 
-        cmd = "docker run -v " + os.path.dirname(outputPath) + ":" + os.path.dirname(outputPathDocker) + " " \
+        cmd = "docker run " \
+              "-v " + os.path.dirname(outputPath) + ":" + os.path.dirname(outputPathDocker) + " " \
+              "-v /data:/data " \
               "vito-docker-private.artifactory.vgt.vito.be/applab-data-customization:latest " \
               "/home/worker/applab/customize.py -tlx %s -tly %s -brx %s -bry %s -type %s -in %s -out %s" % (tlx, tly, brx, bry, type, retrieved, outputPathDocker) 
 

@@ -3,7 +3,7 @@
 import sys
 import os
 import atexit
-import datetime
+from datetime import *
 
 # indicates whetehr docker container should be used 
 RUN_DOCKER_CONTAINER = True
@@ -57,7 +57,7 @@ def main():
         import tempfile
 
         # execute docker container
-        (tmpFd, tmpFn) = tempfile.mkstemp(suffix='.tmp', prefix='applab');
+        (tmpFd, tmpFn) = tempfile.mkstemp(suffix='.tmp', prefix='applab', dir='/tmp', text=True);
 
         cmd = "docker run -v /tmp:/tmp " \
               "vito-docker-private.artifactory.vgt.vito.be/applab-data-customization:latest " \
@@ -101,7 +101,7 @@ def main():
             inputfile = product.files[0].filename
 
             if inputfile.startswith("file:"):
-                inputfile = 'file://' + inputfile[5:]
+                inputfile = 'file://' + inputfile[5:];  # Strip 'file:'
 
             # retrieve the file to the local temporary folder TMPDIR provided by the framework (this folder is only used by this process).
             retrieved = ciop.copy(inputfile, ciop.tmp_dir)
