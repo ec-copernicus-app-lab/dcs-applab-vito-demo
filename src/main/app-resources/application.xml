@@ -15,8 +15,8 @@
       </defaultJobconf>
 
       <defaultParameters>
-           <parameter id="startdate" abstract="Start Date"   title="Start Date"   scope="runtime">20170108</parameter>
-           <parameter id="enddate"   abstract="End Date"     title="End Date"     scope="runtime">20170108</parameter>
+           <parameter id="startdate" abstract="Start Date"   title="Start Date"   scope="runtime">20170101</parameter>
+           <parameter id="enddate"   abstract="End Date"     title="End Date"     scope="runtime">20170110</parameter>
            <parameter id="type"      abstract="Product Type" title="Product Type" scope="runtime">LAI</parameter>
       </defaultParameters>
 
