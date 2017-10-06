@@ -8,17 +8,18 @@
   <jobTemplates>
 
     <jobTemplate id="QueryCatalog">
-      <streamingExecutable>/application/QueryCatalog/run.py</streamingExecutable>
-      <defaultJobconf>
-        <!-- By setting this property with value 1, the node will act as 'aggregator. That is: only one instance of the node will run on the cluster -->
-        <property id="ciop.job.max.tasks">1</property>
-      </defaultJobconf>
+      <streamingExecutable>/application/QueryCatalog/run.py</streamingExecutable>      
 
       <defaultParameters>
            <parameter id="startdate" abstract="Start Date"   title="Start Date"   scope="runtime">20170101</parameter>
            <parameter id="enddate"   abstract="End Date"     title="End Date"     scope="runtime">20170110</parameter>
            <parameter id="type"      abstract="Product Type" title="Product Type" scope="runtime">LAI</parameter>
       </defaultParameters>
+
+     <defaultJobconf>
+        <!-- By setting this property with value 1, the node will act as 'aggregator. That is: only one instance of the node will run on the cluster -->
+        <property id="ciop.job.max.tasks">1</property>
+      </defaultJobconf>
 
     </jobTemplate>
 
@@ -28,6 +29,7 @@
       <defaultParameters>
            <parameter id="roi" abstract="Bounding Box" title="Bounding Box" scope="runtime">5.00,40.00,10.00,35.00</parameter>
       </defaultParameters>
+
     </jobTemplate>
 
   </jobTemplates>
@@ -39,7 +41,10 @@
     <workflowVersion>1.0</workflowVersion>
 
     <node id="QueryCatalogNode">
-      <job id="QueryCatalog"/>
+        <job id="QueryCatalog"/>
+        <sources>
+            <source refid="file:urls">/application/inputs/list</source>
+        </sources>
     </node>
 
     <node id="CustomizeDataNode">

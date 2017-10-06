@@ -6,15 +6,18 @@ import unittest
 import string
 from StringIO import StringIO
 
+import cioppy
+ciop = cioppy.Cioppy()
+
+# define the exit codes
+SUCCESS = 0
+
+
 # Simulating the Runtime environment
 os.environ['TMPDIR'] = '/tmp'
 os.environ['_CIOP_APPLICATION_PATH'] = '/application'
 os.environ['ciop_job_nodeid'] = 'dummy'
 os.environ['ciop_wf_run_root'] = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'artifacts')
-
-sys.path.append('../main/app-resources/util/')
-
-from util import log_input
 
 class NodeATestCase(unittest.TestCase):
 
@@ -29,10 +32,8 @@ class NodeATestCase(unittest.TestCase):
         # need to check the stderr to test the function.
         stderr = StringIO()
         sys.stderr = stderr
-        log_input(input_reference)
         output = stderr.getvalue()
-        log_message = string.split(output ,'\n')[1][27:]
-        self.assertEqual(log_message, "[INFO   ] [user process] processing input: "+ input_reference, "Input reference not logged")
+        ciop.log('INFO', output)
 
 if __name__ == '__main__':
     unittest.main()
