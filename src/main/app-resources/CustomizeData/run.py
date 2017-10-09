@@ -15,7 +15,8 @@ ciop = cioppy.Cioppy()
 # define the exit codes
 SUCCESS = 0
 ERR_INVALIDTYPE = 1
-ERR_CUSTOMIZATION = 2
+ERR_INVALIDROI = 2
+ERR_CUSTOMIZATION = 3
 
 # add a trap to exit gracefully
 def clean_exit(exit_code):
@@ -63,7 +64,7 @@ def main():
         ciop.log('INFO', 'Input = %s' % input)
 
         # retrieve the file to the local temporary folder TMPDIR provided by the framework (this folder is only used by this process).
-        retrieved = ciop.copy(inputfile, inputDir)
+        retrieved = ciop.copy(input, inputDir)
         ciop.log('INFO', 'Retrieved ' + os.path.basename(retrieved))
 
         # perform customization
@@ -75,7 +76,7 @@ def main():
               "-v " + os.path.dirname(outputPath) + ":" + os.path.dirname(outputPathDocker) + " " \
               "-v /data:/data " \
               "vito-docker-private.artifactory.vgt.vito.be/applab-data-customization:latest " \
-              "/home/worker/applab/customize.py -tlx %s -tly %s -brx %s -bry %s -type %s -in %s -out %s" % (tlx, tly, brx, bry, type, retrieved, outputPathDocker) 
+              "python /home/worker/applab/customize.py -tlx %s -tly %s -brx %s -bry %s -type %s -in %s -out %s" % (tlx, tly, brx, bry, type, retrieved, outputPathDocker) 
 
         stat, out = commands.getstatusoutput(cmd);
 

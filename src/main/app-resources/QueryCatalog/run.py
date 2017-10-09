@@ -3,10 +3,9 @@
 import sys
 import os
 import atexit
+import commands
+import tempfile
 from datetime import *
-
-# indicates whetehr docker container should be used 
-RUN_DOCKER_CONTAINER = True
 
 # import the ciop functions (e.g. copy, log)
 
@@ -19,6 +18,8 @@ ciop = cioppy.Cioppy()
 SUCCESS = 0
 ERR_NOINPUTS = 1
 ERR_INVALIDTYPE = 2
+ERR_CATALOGQUERY = 3
+ERR_DELETE = 4
 
 # add a trap to exit gracefully
 def clean_exit(exit_code):
@@ -30,7 +31,8 @@ def clean_exit(exit_code):
     msg = { SUCCESS          : 'Querying VITO product catalogue successfully concluded',
             ERR_CATALOGQUERY : 'Querying VITO product catalogue failed',
             ERR_NOINPUTS     : 'No products found matching the given query fields',
-            ERR_INVALIDTYPE  : 'Invalid product type specified (expected: BA, LAI or NDVI)'}
+            ERR_INVALIDTYPE  : 'Invalid product type specified (expected: BA, LAI or NDVI)',
+            ERR_DELETE       : 'Cleaning up temporary data failed'}
 
     ciop.log(log_level, msg[exit_code])
 
@@ -41,7 +43,7 @@ def main():
     endDate     = ciop.getparam('enddate')
     producttype = ciop.getparam('type')
 
-    ciop.log('INFO', 'Querying VITO product catalog: [StartDate = %s] [EndDate = %s] [Type = %s]' (startdate, enddate, roi, producttype))
+    ciop.log('INFO', 'Querying VITO product catalog: [StartDate = %s] [EndDate = %s] [Type = %s]' % (startDate, endDate, producttype))
 
     if   producttype == "BA":   type = "BioPar_BA300_V1_Global"
     elif producttype == "NDVI": type = "BioPar_NDVI_V2_Global"
@@ -51,70 +53,42 @@ def main():
 
     results = []
 
-    if RUN_DOCKER_CONTAINER:
+    # execute docker container
+    (tmpFd, tmpFn) = tempfile.mkstemp(suffix='.tmp', prefix='applab_', dir='/tmp', text=True);
 
-        import commands
-        import tempfile
+    cmd = "docker run -v /tmp:/tmp " \
+          "vito-docker-private.artifactory.vgt.vito.be/applab-data-customization:latest " \
+          "python /home/worker/applab/query.py -startdate %s -enddate %s -type %s -out %s" % (startDate, endDate, type, tmpFn) 
 
-        # execute docker container
-        (tmpFd, tmpFn) = tempfile.mkstemp(suffix='.tmp', prefix='applab', dir='/tmp', text=True);
+    stat, out = commands.getstatusoutput(cmd);
 
-        cmd = "docker run -v /tmp:/tmp " \
-              "vito-docker-private.artifactory.vgt.vito.be/applab-data-customization:latest " \
-              "/home/worker/applab/query.py -startdate %s -enddate %s -type %s -out %s" % (startDate, endDate, type, tmpFn) 
+    if stat != 0:
+        ciop.log('ERROR', 'Querying VITO product catalogue failed: %s' % out);
+        sys.exit(ERR_CATALOGQUERY)
 
-        stat, out = commands.getstatusoutput(cmd);
+    # retrieve list of results
+    content = tmpFd.readlines();
+    results = [x.strip()[7:] for x in content]    # Strip 'file://' from filenames
 
-        if stat != 0:
-            ciop.log('ERROR', 'Querying VITO product catalogue failed: %s' % out);
-            sys.exit(ERR_CATALOGQUERY)
+    tmpFd.close();
 
-        # retrieve list of results
-        results = tmpFd.readlines();
-        results = [x.strip() for x in content]
+    if len(results) == 0:
+        sys.exit(ERR_NOINPUTS);    
 
-        tmpFd.close();
-
-        if len(results) == 0:
-            sys.exit(ERR_NOINPUTS);
-
-    else:
-
-        # import catalog client
-        from catalogclient import catalog
-
-        dt1 = datetime.strptime(startDate, "%Y%m%d");
-        dt2 = datetime.strptime(endDate, "%Y%m%d");
-
-        # query catalog matching the given fields
-        catalog=catalog.Catalog()
-
-        products = catalog.get_products(type, startdate=dt1.date(), enddate=dt2.date());
-
-        # check whether any matches have been found
-        if len(products) == 0:
-            sys.exit(ERR_NOINPUTS);
-
-        # retrieve the local filenames
-        for product in products:
-
-            inputfile = product.files[0].filename
-
-            if inputfile.startswith("file:"):
-                inputfile = 'file://' + inputfile[5:];  # Strip 'file:'
-
-            # retrieve the file to the local temporary folder TMPDIR provided by the framework (this folder is only used by this process).
-            retrieved = ciop.copy(inputfile, ciop.tmp_dir)
-            ciop.log('INFO', 'Retrieved ' + os.path.basename(retrieved))
-
-            assert(retrieved)
-
-            results.append(inputfile);
-
-    ciop.log('INFO', 'Found ' + len(results) + ' products from VITO product catalog matching the given query fields')
+    ciop.log('INFO', 'Found %d products from VITO product catalog matching the given query fields' % len(results))
 
     # publish the results that have been found
-    published = ciop.publish(results)
+    for result in results:
+        published = ciop.publish(result)
+
+    # cleanup results
+    cmd = 'docker run -v /tmp:/tmp vito-docker-private.artifactory.vgt.vito.be/applab-data-customization:latest /bin/bash -c "rm -rf %s"' % tmpFn
+
+    stat, out = commands.getstatusoutput(cmd);
+
+    if stat != 0:
+        ciop.log('ERROR', 'Cleaning up temporary data failed: %s' % out);
+        sys.exit(ERR_DELETE)
 
 try:
     main()

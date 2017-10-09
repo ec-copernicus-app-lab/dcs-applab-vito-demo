@@ -27,7 +27,8 @@
       <streamingExecutable>/application/CustomizeData/run.py</streamingExecutable>
 
       <defaultParameters>
-           <parameter id="roi" abstract="Bounding Box" title="Bounding Box" scope="runtime">5.00,40.00,10.00,35.00</parameter>
+           <parameter id="type" abstract="Product Type" title="Product Type" scope="runtime">LAI</parameter>
+           <parameter id="roi"  abstract="Bounding Box" title="Bounding Box" scope="runtime">5.00,40.00,10.00,35.00</parameter>
       </defaultParameters>
 
     </jobTemplate>
