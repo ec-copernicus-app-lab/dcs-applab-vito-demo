@@ -32,7 +32,7 @@ def clean_exit(exit_code):
 
     ciop.log(log_level, msg[exit_code])
 
-def main():
+def main(inputs):
 
     # retrieve some customization parameters
     roi  = ciop.getparam('roi')
@@ -57,9 +57,11 @@ def main():
     os.makedirs(outputDir);
     os.makedirs(inputDir);
 
+    ciop.log('INFO', 'Found %d inputs published' % len(inputs))
+
     # Input files come from STDIN (standard input) and they are retrieved
     # line-by-line.
-    for input in sys.stdin:
+    for input in inputs:
         
         ciop.log('INFO', 'Input = %s' % input)
 
@@ -71,12 +73,18 @@ def main():
         outputBasename   = os.path.splitext(os.path.basename(retrieved))[0] + "_CUSTOM.TIFF"
         outputPath       = os.path.join(outputDir, outputBasename);
         outputPathDocker = os.path.join("/home/worker/workDir/outDir", outputBasename);
+        inputDirDocker   = "/home/worker/workDir/inDir"
+        inputPathDocker  = os.path.join(inputDirDocker, os.path.basename(retrieved))
 
+        # "applab/applab-data-customization:latest " \
         cmd = "docker run " \
               "-v " + os.path.dirname(outputPath) + ":" + os.path.dirname(outputPathDocker) + " " \
+              "-v " + os.path.dirname(retrieved) + ":" + inputDirDocker + " " \
               "-v /data:/data " \
               "vito-docker-private.artifactory.vgt.vito.be/applab-data-customization:latest " \
-              "python /home/worker/applab/customize.py -tlx %s -tly %s -brx %s -bry %s -type %s -in %s -out %s" % (tlx, tly, brx, bry, type, retrieved, outputPathDocker) 
+              "python /home/worker/applab/customize.py -tlx %s -tly %s -brx %s -bry %s -type %s -in %s -out %s" % (tlx, tly, brx, bry, type, inputPathDocker, outputPathDocker) 
+
+        ciop.log('INFO', 'Executing command %s ' % cmd);
 
         stat, out = commands.getstatusoutput(cmd);
 
@@ -87,11 +95,19 @@ def main():
         # publish results
         ciop.publish(outputPath, metalink=True);
 
+        ciop.log('INFO', 'Results published to %s ' % outputPath)
+
         # cleanup results
         os.remove(retrieved);
 
 try:
-    main()
+
+    inputs = []
+    for input in sys.stdin:
+        inputs.append(input)
+
+    main(inputs)
+
 except SystemExit as e:
     if e.args[0]:
          clean_exit(e.args[0])

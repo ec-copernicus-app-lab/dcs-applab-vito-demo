@@ -5,11 +5,13 @@ import os
 import atexit
 import commands
 import tempfile
+import subprocess
 from datetime import *
+
 
 # import the ciop functions (e.g. copy, log)
 
-sys.path.append(os.environ['_CIOP_APPLICATION_PATH'] + '/util')
+sys.path.append('/opt/anaconda/bin/');
 
 import cioppy
 ciop = cioppy.Cioppy()
@@ -38,6 +40,9 @@ def clean_exit(exit_code):
 
 def main():
 
+    for inputfile in sys.stdin:
+        ciop.log('INFO', 'The input file is: ' + inputfile)
+
     # get some user specified processing parameters
     startDate   = ciop.getparam('startdate')
     endDate     = ciop.getparam('enddate')
@@ -54,32 +59,40 @@ def main():
     results = []
 
     # execute docker container
-    (tmpFd, tmpFn) = tempfile.mkstemp(suffix='.tmp', prefix='applab_', dir='/tmp', text=True);
+    (tmpFd, tmpFn) = tempfile.mkstemp(suffix='.tmp', prefix='applab', dir='/tmp', text=True);
+    ciop.log('INFO', 'Created tmp file %s' % tmpFn)
 
+    # "applab/applab-data-customization:latest " \
     cmd = "docker run -v /tmp:/tmp " \
           "vito-docker-private.artifactory.vgt.vito.be/applab-data-customization:latest " \
           "python /home/worker/applab/query.py -startdate %s -enddate %s -type %s -out %s" % (startDate, endDate, type, tmpFn) 
+
+    ciop.log('INFO', 'Executing command %s ' % cmd);
 
     stat, out = commands.getstatusoutput(cmd);
 
     if stat != 0:
         ciop.log('ERROR', 'Querying VITO product catalogue failed: %s' % out);
         sys.exit(ERR_CATALOGQUERY)
+    
+    tmpFd = open(tmpFn, 'r');
 
     # retrieve list of results
     content = tmpFd.readlines();
-    results = [x.strip()[7:] for x in content]    # Strip 'file://' from filenames
+    results = [x.strip()[7:] for x in content] # Strip 'file://' from filenames
 
     tmpFd.close();
 
     if len(results) == 0:
-        sys.exit(ERR_NOINPUTS);    
+        sys.exit(ERR_NOINPUTS);
 
     ciop.log('INFO', 'Found %d products from VITO product catalog matching the given query fields' % len(results))
 
     # publish the results that have been found
     for result in results:
+        ciop.log('INFO', 'Publishing result %s' % result)
         published = ciop.publish(result)
+        ciop.log('INFO', 'Published = %s' % published)
 
     # cleanup results
     cmd = 'docker run -v /tmp:/tmp vito-docker-private.artifactory.vgt.vito.be/applab-data-customization:latest /bin/bash -c "rm -rf %s"' % tmpFn
