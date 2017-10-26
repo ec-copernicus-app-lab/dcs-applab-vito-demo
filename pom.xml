@@ -16,7 +16,7 @@
     <summary>Workflow for the customization of LAI/BA/NDVI data products (AppLab project).</summary>
     <description>Workflow for the customization of LAI/BA/NDVI data products (AppLab project).</description>
     <community>ec-copernicus-app-lab</community>
-    <yumRepo>ec-copernicus-app-lab</yumRepo>
+    <yumRepo>ec-applab</yumRepo>
   </properties>
   <scm>
     <connection>scm:git:ssh://git@github.com/ec-copernicus-app-lab/dcs-applab-vito-demo</connection>
