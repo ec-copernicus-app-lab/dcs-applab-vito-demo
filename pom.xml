@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
-  <groupId>applab-data-customization</groupId>
-  <artifactId>applab-data-customization</artifactId>
+  <groupId>com.terradue</groupId>
+  <artifactId>dcs-applab-vito-demo</artifactId>
   <packaging>pom</packaging>
-  <name>applab-data-customization</name>
+  <name>dcs-applab-vito-demo</name>
   <parent>
     <groupId>com.terradue</groupId>
     <artifactId>dcs-python-parent</artifactId>
@@ -15,13 +15,13 @@
   <properties>
     <summary>Workflow for the customization of LAI/BA/NDVI data products (AppLab project).</summary>
     <description>Workflow for the customization of LAI/BA/NDVI data products (AppLab project).</description>
-    <community>AppLab</community>
-    <yumRepo>AppLab</yumRepo>
+    <community>ec-copernicus-app-lab</community>
+    <yumRepo>ec-copernicus-app-lab</yumRepo>
   </properties>
   <scm>
-    <connection>scm:git:ssh://git@github.com/AppLab/applab-data-customization</connection>
-    <developerConnection>scm:git:ssh://git@github.com/AppLab/applab-data-customization</developerConnection>
-    <url>https://github.com/AppLab/applab-data-customization</url>
+    <connection>scm:git:ssh://git@github.com/ec-copernicus-app-lab/dcs-applab-vito-demo</connection>
+    <developerConnection>scm:git:ssh://git@github.com/ec-copernicus-app-lab/dcs-applab-vito-demo</developerConnection>
+    <url>https://github.com/ec-copernicus-app-lab/dcs-applab-vito-demo</url>
     <tag>HEAD</tag>
   </scm>
   <profiles>
@@ -57,7 +57,4 @@
       </build>
     </profile>
   </profiles>
-  <modules>
-    <module>dcs-applab-vito-demo</module>
-  </modules>
 </project>
