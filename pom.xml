@@ -57,4 +57,7 @@
       </build>
     </profile>
   </profiles>
+  <modules>
+    <module>dcs-applab-vito-demo</module>
+  </modules>
 </project>
