@@ -11,7 +11,7 @@
     <version>2.0.0</version>
   </parent>
   <description>Workflow for the customization of LAI/BA/NDVI data products (AppLab project).</description>
-  <version>1.0-SNAPSHOT</version>
+  <version>1.0</version>
   <properties>
     <summary>Workflow for the customization of LAI/BA/NDVI data products (AppLab project).</summary>
     <description>Workflow for the customization of LAI/BA/NDVI data products (AppLab project).</description>
@@ -28,10 +28,10 @@
     <profile>
       <id>package-app</id>
       <activation>
-         <property>
-           <name>env</name>
-           <value>ci</value>
-         </property>
+        <property>
+          <name>env</name>
+          <value>ci</value>
+        </property>
       </activation>
       <build>
         <plugins>
